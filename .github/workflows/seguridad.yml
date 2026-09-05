@@ -30,9 +30,9 @@ jobs:
     name: Vulnerabilidades en dependencias
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
@@ -52,7 +52,7 @@ jobs:
         # Se conserva por build: cuando salga la próxima vulnerabilidad
         # grave, responder "¿estamos afectados?" es consultar este archivo
         # en lugar de reconstruir el entorno de hace seis meses.
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sbom
           path: sbom.json
@@ -62,9 +62,9 @@ jobs:
     name: Análisis estático del código propio
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
@@ -81,9 +81,9 @@ jobs:
     name: Pruebas
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
@@ -104,7 +104,7 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Calcular nombre de la imagen
         # El registro exige minusculas y el nombre del repositorio puede
@@ -139,7 +139,7 @@ jobs:
       # disponible algo que todavia no se sabe si es seguro.
       - name: Autenticarse en el registro
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
