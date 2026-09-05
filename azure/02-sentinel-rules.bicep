@@ -42,8 +42,17 @@ SecOpsAudit_CL
 | where Intentos >= 5
 | extend IPCustomEntity = SourceIp
 '''
+    // La ventana consultada (30 min) es MUCHO mayor que la frecuencia
+    // (5 min), y eso es deliberado.
+    //
+    // Un evento tarda varios minutos en indexarse. Si la ventana fuera
+    // igual a la frecuencia, un evento que se indexa tarde caeria entre
+    // dos ejecuciones y no lo veria NINGUNA: la deteccion lo perderia sin
+    // avisar. Solapar las ventanas hace que cada evento sea evaluado
+    // varias veces, y de los incidentes repetidos se encarga el
+    // agrupamiento de abajo. Preferimos evaluar de mas que no detectar.
     queryFrequency: 'PT5M'
-    queryPeriod: 'PT5M'
+    queryPeriod: 'PT30M'
     triggerOperator: 'GreaterThan'
     triggerThreshold: 0
     suppressionDuration: 'PT1H'
@@ -158,8 +167,10 @@ SecOpsAudit_CL
 | where EventType == "audit_sink_fallo"
 | project TimeGenerated, DestinoCaido = TargetResource, Metadata
 '''
+    // Misma razon que en la regla de fuerza bruta: la ventana supera con
+    // holgura a la frecuencia para tolerar el retraso de indexacion.
     queryFrequency: 'PT10M'
-    queryPeriod: 'PT10M'
+    queryPeriod: 'PT30M'
     triggerOperator: 'GreaterThan'
     triggerThreshold: 0
     suppressionDuration: 'PT1H'
