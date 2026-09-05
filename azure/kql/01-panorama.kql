@@ -1,0 +1,8 @@
+// Panorama general del audit trail en las últimas 24 horas.
+// Buena primera consulta para abrir la demo: muestra que los eventos
+// de la aplicación efectivamente están llegando al SIEM.
+
+SecOpsAudit_CL
+| where TimeGenerated > ago(24h)
+| summarize Eventos = count() by EventType, Severity
+| sort by Eventos desc

@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Resultado del escaneo{% endblock %}
+{% block content %}
+<div class="card">
+    <p><a href="/scans">← Volver al historial</a></p>
+    <h1>Resultado: {{ scan.target }}</h1>
+    <p>
+        Severidad general: <span class="badge badge-{{ scan.severity_summary }}">{{ scan.severity_summary }}</span>
+        · Estado: {{ scan.status }} · {{ scan.created_at }}
+    </p>
+    <table>
+        <thead><tr><th>Chequeo</th><th>Severidad</th><th>Detalle</th></tr></thead>
+        <tbody>
+        {% for f in scan.findings %}
+            <tr>
+                <td>{{ f.check }}</td>
+                <td><span class="badge badge-{{ f.severity }}">{{ f.severity }}</span></td>
+                <td>{{ f.detail }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

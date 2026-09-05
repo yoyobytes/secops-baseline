@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}{{ codigo }} · {{ titulo }}{% endblock %}
+{% block content %}
+<div class="card auth-card">
+    <p class="codigo-error">{{ codigo }}</p>
+    <h1>{{ titulo }}</h1>
+    <p class="hint">{{ detalle }}</p>
+    {% if request.session.get("role") %}
+        <p><a href="{{ '/admin' if request.session.get('role') == 'admin' else '/' }}">← Volver al inicio</a></p>
+    {% else %}
+        <p><a href="/login">← Iniciar sesión</a></p>
+    {% endif %}
+</div>
+{% endblock %}

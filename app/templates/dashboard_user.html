@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="card">
+    <h1>Lanzar escaneo de postura de seguridad</h1>
+    <p class="hint">Escaneo pasivo: headers HTTP, certificado TLS, registros SPF/DMARC. No se realiza ninguna explotación activa.</p>
+    {% if error %}<p class="alert alert-error">{{ error }}</p>{% endif %}
+    <form method="post" action="/scan">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <label for="target">Dominio o URL objetivo</label>
+        <input type="text" id="target" name="target" placeholder="ejemplo.com" required>
+        <label class="checkbox">
+            <input type="checkbox" name="authorized" required>
+            Confirmo que tengo autorización para escanear este dominio.
+        </label>
+        <button type="submit">Escanear</button>
+    </form>
+</div>
+
+<div class="card">
+    <h2>{% if full_history %}Historial completo{% else %}Últimos escaneos{% endif %}</h2>
+    {% if not full_history %}<p><a href="/scans">Ver historial completo →</a></p>{% endif %}
+    {% if scans %}
+    <table>
+        <thead><tr><th>Objetivo</th><th>Severidad</th><th>Estado</th><th>Fecha</th><th></th></tr></thead>
+        <tbody>
+        {% for scan in scans %}
+            <tr>
+                <td>{{ scan.target }}</td>
+                <td><span class="badge badge-{{ scan.severity_summary }}">{{ scan.severity_summary }}</span></td>
+                <td>{{ scan.status }}</td>
+                <td>{{ scan.created_at }}</td>
+                <td><a href="/scans/{{ scan.id }}">Ver detalle</a></td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="hint">Todavía no ejecutaste ningún escaneo.</p>
+    {% endif %}
+</div>
+{% endblock %}

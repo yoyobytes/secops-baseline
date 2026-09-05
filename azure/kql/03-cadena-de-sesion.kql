@@ -1,0 +1,15 @@
+// Reconstrucción completa de una sesión a partir de su CorrelationId.
+//
+// Esta es LA consulta que justifica haber puesto un id de correlación en
+// el esquema. Sin él, un analista tiene eventos sueltos y tiene que
+// adivinar cuáles pertenecen al mismo actor. Con él, responde en una
+// sola consulta la pregunta que realmente importa en un incidente:
+// "¿qué hizo exactamente esta sesión, en qué orden?".
+//
+// Reemplazar por el CorrelationId que se quiera investigar.
+
+let SesionInvestigada = "PEGAR_CORRELATION_ID_ACA";
+SecOpsAudit_CL
+| where CorrelationId == SesionInvestigada
+| project TimeGenerated, EventType, Actor, ActorRole, TargetResource, Result, Severity, SourceIp, Metadata
+| sort by TimeGenerated asc

@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Bandeja de alertas{% endblock %}
+{% block content %}
+<div class="card">
+    <h1>Bandeja de alertas</h1>
+    <p class="hint">
+        Todo lo que la aplicación disparó como alerta, con el resultado de cada canal
+        de entrega. La bandeja interna es un conector más: la misma alerta sale
+        simultáneamente por correo y webhook si están configurados.
+    </p>
+</div>
+
+{% for a in alertas %}
+<div class="card alerta">
+    <div class="alerta-cabecera">
+        <span class="badge badge-{{ 'critical' if a.mensaje.kind == 'alerta' else 'info' }}">{{ a.mensaje.kind }}</span>
+        <strong>{{ a.mensaje.subject }}</strong>
+        <span class="hint">{{ a.mensaje.created_at }}</span>
+    </div>
+    <pre class="alerta-cuerpo">{{ a.mensaje.body }}</pre>
+    {% if a.estado %}
+    <p class="hint">
+        Canales externos:
+        {% for canal, ok in a.estado.items() %}
+            <span class="badge badge-{{ 'low' if ok else 'critical' }}">{{ canal }}: {{ 'entregado' if ok else 'falló' }}</span>
+        {% endfor %}
+    </p>
+    {% else %}
+    <p class="hint">Sin canales externos configurados — solo bandeja interna.</p>
+    {% endif %}
+</div>
+{% else %}
+<div class="card">
+    <p class="hint">Todavía no se disparó ninguna alerta. Ejecutá un escaneo con hallazgo crítico o enviá el digest manualmente desde Configuración.</p>
+</div>
+{% endfor %}
+{% endblock %}

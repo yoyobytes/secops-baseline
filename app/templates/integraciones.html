@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Integraciones{% endblock %}
+{% block content %}
+
+{% if nueva_clave %}
+<div class="card">
+    <h2>Credencial creada</h2>
+    <p class="alert alert-ok">
+        Copiala ahora: solo se guardó su hash, no se puede volver a mostrar.
+    </p>
+    <pre class="alerta-cuerpo">{{ nueva_clave }}</pre>
+    <p class="hint">Uso: <code>Authorization: Bearer &lt;clave&gt;</code> o <code>X-API-Key: &lt;clave&gt;</code></p>
+</div>
+{% endif %}
+
+<div class="card">
+    <h1>Integraciones (credenciales de máquina)</h1>
+    <p class="hint">
+        Identifican a otro <strong>sistema</strong> que llama a esta automatización, no a una
+        persona. No tienen contraseña ni MFA —un servicio no puede escanear un QR— sino una
+        clave de alta entropía, con alcances acotados y límite de peticiones propio.
+    </p>
+    <table>
+        <thead>
+            <tr><th>Nombre</th><th>Identificador</th><th>Alcances</th><th>Límite/min</th><th>Último uso</th><th>Estado</th><th></th></tr>
+        </thead>
+        <tbody>
+        {% for c in clientes %}
+            <tr>
+                <td>{{ c.name }}</td>
+                <td><code>{{ c.token_id }}</code></td>
+                <td>
+                    {% for s in c.scope_list() %}<span class="badge badge-info">{{ s }}</span> {% endfor %}
+                    {% if not c.scope_list() %}<span class="hint">sin alcances</span>{% endif %}
+                </td>
+                <td>{{ c.rate_limit_per_minute }}</td>
+                <td>{{ c.last_used_at or "nunca" }}</td>
+                <td>
+                    {% if c.is_active %}<span class="badge badge-low">activa</span>
+                    {% else %}<span class="badge badge-critical">revocada</span>{% endif %}
+                </td>
+                <td>
+                    {% if c.is_active %}
+                    <form method="post" action="/admin/integraciones/{{ c.id }}/revocar" class="inline-form">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <button type="submit" class="btn-peligro">Revocar</button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+        {% else %}
+            <tr><td colspan="7" class="hint">No hay integraciones registradas.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="card">
+    <h2>Nueva integración</h2>
+    <form method="post" action="/admin/integraciones">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <label for="nombre">Nombre del sistema que se conecta</label>
+        <input type="text" id="nombre" name="nombre" placeholder="Conector SAP - producción" required>
+
+        <label>Alcances (mínimo privilegio: dale solo lo que necesite)</label>
+        {% for a in alcances %}
+        <label class="checkbox">
+            <input type="checkbox" name="alcances" value="{{ a }}">
+            <code>{{ a }}</code>
+        </label>
+        {% endfor %}
+
+        <label for="limite">Límite de peticiones por minuto</label>
+        <input type="text" id="limite" name="limite" value="60">
+
+        <button type="submit">Crear credencial</button>
+    </form>
+</div>
+{% endblock %}

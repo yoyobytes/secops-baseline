@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}SecOps Webapp{% endblock %}</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header class="topbar">
+    <div class="brand">🛡️ SecOps Webapp</div>
+    <nav>
+        {% set role = request.session.get("role") %}
+        {% if role == "admin" %}
+            <a href="/admin">Panel admin</a>
+            <a href="/admin/scans">Escaneos</a>
+            <a href="/admin/alertas">Alertas</a>
+            <a href="/admin/integraciones">Integraciones</a>
+            <a href="/admin/logs">Auditoría</a>
+            <a href="/admin/settings">Configuración</a>
+            <a href="/logout">Salir ({{ request.session.get("username") }})</a>
+        {% elif role == "user" %}
+            <a href="/">Dashboard</a>
+            <a href="/scans">Historial</a>
+            <a href="/logout">Salir ({{ request.session.get("username") }})</a>
+        {% else %}
+            <a href="/login">Iniciar sesión</a>
+        {% endif %}
+    </nav>
+</header>
+<main class="content">
+    {% block content %}{% endblock %}
+</main>
+<footer class="footer">
+    <small>Demo de automatización de ciberseguridad — solo escaneo pasivo, con autorización confirmada del usuario.</small>
+</footer>
+</body>
+</html>

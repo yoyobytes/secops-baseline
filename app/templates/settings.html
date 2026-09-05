@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Configuración{% endblock %}
+{% block content %}
+<div class="card">
+    <h1>Configuración de alertas</h1>
+    {% if message %}<p class="alert alert-ok">{{ message }}</p>{% endif %}
+    <form method="post" action="/admin/settings">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <label for="alert_email">Correo de alertas</label>
+        <input type="email" id="alert_email" name="alert_email" value="{{ settings.alert_email or '' }}" placeholder="alerts@empresa.com">
+        <label for="alert_webhook_url">Webhook (compatible con Slack)</label>
+        <input type="url" id="alert_webhook_url" name="alert_webhook_url" value="{{ settings.alert_webhook_url or '' }}" placeholder="https://hooks.slack.com/...">
+        <label class="checkbox">
+            <input type="checkbox" name="digest_enabled" {% if settings.digest_enabled %}checked{% endif %}>
+            Habilitar digest diario automático (3:00 AM)
+        </label>
+        <button type="submit">Guardar</button>
+    </form>
+</div>
+<div class="card">
+    <h2>Digest diario</h2>
+    <p class="hint">Dispara el digest manualmente para verlo en Mailhog sin esperar a las 3AM.</p>
+    <form method="post" action="/admin/digest/enviar-ahora">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button type="submit">Enviar digest ahora</button>
+    </form>
+</div>
+{% endblock %}

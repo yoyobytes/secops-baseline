@@ -1,0 +1,154 @@
+# =====================================================================
+# Controles de cadena de suministro.
+#
+# La diferencia entre esto y "correr las herramientas de vez en cuando"
+# es que acá los hallazgos DETIENEN la compilación. Un control que avisa
+# pero no bloquea se convierte en ruido que todo el mundo aprende a
+# ignorar en unas semanas.
+#
+# Se ejecuta también de forma programada: una dependencia que hoy está
+# limpia puede tener un CVE publicado mañana sin que nadie toque el
+# código. Sin la ejecución periódica, uno se entera en el próximo commit,
+# que puede ser dentro de tres meses.
+# =====================================================================
+
+name: Seguridad
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Lunes 6:00 UTC. La superficie de ataque cambia sin que cambie el código.
+    - cron: "0 6 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  dependencias:
+    name: Vulnerabilidades en dependencias
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar herramientas
+        run: pip install pip-audit cyclonedx-bom
+
+      - name: Auditar dependencias
+        # Sin `continue-on-error`: si hay un CVE conocido, la build falla.
+        run: pip-audit --requirement requirements.txt --strict
+
+      - name: Generar SBOM
+        run: |
+          pip install -r requirements.txt
+          python -m cyclonedx_py environment -o sbom.json --output-format JSON
+
+      - name: Publicar SBOM como artefacto
+        # Se conserva por build: cuando salga la próxima vulnerabilidad
+        # grave, responder "¿estamos afectados?" es consultar este archivo
+        # en lugar de reconstruir el entorno de hace seis meses.
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom.json
+          retention-days: 90
+
+  codigo:
+    name: Análisis estático del código propio
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar bandit
+        run: pip install bandit
+
+      - name: Analizar
+        # Los hallazgos triados quedan anotados en el código con `# nosec`
+        # y su justificación. Anotar uno por uno obliga a razonarlo;
+        # desactivar la regla entera dejaría pasar los casos reales.
+        run: bandit -r app/ -ll
+
+  pruebas:
+    name: Pruebas
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Ejecutar pruebas
+        run: pytest tests/ -q
+
+  contenedor:
+    name: Construir, escanear y publicar la imagen
+    runs-on: ubuntu-latest
+    # La imagen solo se construye si los controles pasaron. Este `needs`
+    # es lo que convierte el pipeline en una puerta de verdad: no se
+    # publica nada que no haya superado los tres trabajos anteriores.
+    needs: [dependencias, codigo, pruebas]
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Calcular nombre de la imagen
+        # El registro exige minusculas y el nombre del repositorio puede
+        # tener mayusculas.
+        run: echo "IMAGEN=ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
+      - name: Construir imagen
+        run: docker build -t "$IMAGEN:${{ github.sha }}" .
+
+      - name: Escanear con Trivy
+        # Escanea la capa del sistema operativo, no solo los paquetes de
+        # Python. La imagen base trae un Debian entero con sus propios CVEs.
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ env.IMAGEN }}:${{ github.sha }}
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+          ignore-unfixed: true
+
+      - name: Verificar que no corre como root
+        run: |
+          USUARIO=$(docker inspect -f '{{.Config.User}}' "$IMAGEN:${{ github.sha }}")
+          if [ -z "$USUARIO" ] || [ "$USUARIO" = "root" ] || [ "$USUARIO" = "0" ]; then
+            echo "FALLO: el contenedor corre como root"
+            exit 1
+          fi
+          echo "OK: el contenedor corre como '$USUARIO'"
+
+      # --- Publicacion -------------------------------------------------
+      # Recien aca, y solo en main: la imagen se publica DESPUES de pasar
+      # el escaneo. Publicar primero y escanear despues seria dejar
+      # disponible algo que todavia no se sabe si es seguro.
+      - name: Autenticarse en el registro
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publicar imagen
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          docker tag "$IMAGEN:${{ github.sha }}" "$IMAGEN:latest"
+          docker push "$IMAGEN:${{ github.sha }}"
+          docker push "$IMAGEN:latest"
+          echo "Publicada: $IMAGEN:latest"

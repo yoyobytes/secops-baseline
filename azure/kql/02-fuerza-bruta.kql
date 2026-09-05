@@ -1,0 +1,21 @@
+// Detección de fuerza bruta: varios logins fallidos desde la misma IP
+// en una ventana corta.
+//
+// Es la consulta que respalda la regla de detección automática
+// (ver azure/02-sentinel-rules.bicep). Ejecutarla a mano durante la demo
+// permite mostrar el dato crudo ANTES de mostrar la alerta ya disparada.
+
+let VentanaMinutos = 5m;
+let UmbralIntentos = 5;
+SecOpsAudit_CL
+| where TimeGenerated > ago(1h)
+| where EventType == "login_failed"
+| summarize
+    Intentos      = count(),
+    UsuariosProbados = make_set(Actor, 10),
+    Sesiones      = dcount(CorrelationId),
+    PrimerIntento = min(TimeGenerated),
+    UltimoIntento = max(TimeGenerated)
+    by SourceIp, bin(TimeGenerated, VentanaMinutos)
+| where Intentos >= UmbralIntentos
+| sort by Intentos desc

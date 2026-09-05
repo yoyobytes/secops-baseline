@@ -1,0 +1,17 @@
+// Intentos de acceder a funcionalidad de administración sin tener el rol.
+//
+// Un usuario normal tocando /admin una vez puede ser curiosidad o un
+// link mal puesto. El mismo usuario intentándolo repetidamente, o
+// probando varias rutas distintas, es reconocimiento.
+
+SecOpsAudit_CL
+| where TimeGenerated > ago(24h)
+| where EventType == "acceso_admin_denegado"
+| summarize
+    Intentos      = count(),
+    RutasProbadas = make_set(TargetResource, 20),
+    Sesiones      = make_set(CorrelationId, 10),
+    Ultimo        = max(TimeGenerated)
+    by Actor, SourceIp
+| extend Sospechoso = Intentos >= 3 or array_length(RutasProbadas) >= 3
+| sort by Intentos desc

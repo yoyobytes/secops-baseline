@@ -1,0 +1,40 @@
+version: "3.9"
+
+services:
+  webapp:
+    build: .
+    container_name: secops-webapp
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: sqlite:////srv/data/secops.db
+      LOG_FILE: /srv/logs/audit.log
+      SMTP_HOST: mailhog
+      SMTP_PORT: "1025"
+    volumes:
+      - ./logs:/srv/logs
+      - ./data:/srv/data
+    depends_on:
+      - mailhog
+    labels:
+      ofelia.enabled: "true"
+      ofelia.job-exec.daily-digest.schedule: "0 0 3 * * *"
+      ofelia.job-exec.daily-digest.command: "python -m app.cron.daily_digest"
+
+  mailhog:
+    image: mailhog/mailhog
+    container_name: secops-mailhog
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+
+  scheduler:
+    image: mcuadros/ofelia:latest
+    container_name: secops-scheduler
+    depends_on:
+      - webapp
+    command: daemon --docker
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro

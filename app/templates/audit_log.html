@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Auditoría{% endblock %}
+{% block content %}
+<div class="card">
+    <h1>Audit trail</h1>
+    <form method="get" action="/admin/logs" class="filters">
+        <input type="text" name="event_type" placeholder="tipo de evento" value="{{ filters.event_type }}">
+        <select name="severity">
+            <option value="">Severidad (todas)</option>
+            {% for s in ["info", "warning", "critical"] %}
+            <option value="{{ s }}" {% if filters.severity == s %}selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+        </select>
+        <input type="text" name="actor" placeholder="actor" value="{{ filters.actor }}">
+        <input type="date" name="date_from" value="{{ filters.date_from }}">
+        <input type="date" name="date_to" value="{{ filters.date_to }}">
+        <button type="submit">Filtrar</button>
+        <a href="/admin/logs">Limpiar</a>
+    </form>
+</div>
+<div class="card">
+    <table>
+        <thead><tr><th>Fecha</th><th>Evento</th><th>Actor</th><th>Rol</th><th>Recurso</th><th>Resultado</th><th>Severidad</th><th>IP</th></tr></thead>
+        <tbody>
+        {% for e in events %}
+            <tr>
+                <td>{{ e.timestamp }}</td>
+                <td>{{ e.event_type }}</td>
+                <td>{{ e.actor }}</td>
+                <td>{{ e.actor_role or "-" }}</td>
+                <td>{{ e.resource or "-" }}</td>
+                <td>{{ e.result }}</td>
+                <td><span class="badge badge-{{ e.severity }}">{{ e.severity }}</span></td>
+                <td>{{ e.source_ip or "-" }}</td>
+            </tr>
+        {% else %}
+            <tr><td colspan="8">Sin eventos para este filtro.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
