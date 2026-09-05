@@ -117,7 +117,7 @@ jobs:
       - name: Escanear con Trivy
         # Escanea la capa del sistema operativo, no solo los paquetes de
         # Python. La imagen base trae un Debian entero con sus propios CVEs.
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ env.IMAGEN }}:${{ github.sha }}
           severity: HIGH,CRITICAL
